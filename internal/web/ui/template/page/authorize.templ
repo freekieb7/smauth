@@ -1,0 +1,67 @@
+package page
+
+import (
+	"github.com/freekieb7/smauth/internal/oauth"
+	"github.com/freekieb7/smauth/internal/web/ui/template/layout"
+)
+
+type AuthorizeProps struct {
+	layout.RootProps
+	AuthorizeURL string
+	Scopes       []oauth.Scope
+}
+
+templ Authorize(props AuthorizeProps) {
+	@layout.Root(props.RootProps) {
+		<div class="authorize-page">
+			<h1>Authorize Page</h1>
+			<table class="table">
+				<thead>
+					<tr>
+						<th scope="col">Description</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, scope := range props.Scopes {
+						<tr>
+							<td>{ scope.Description }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+			<form id="authorize-form">
+				<button type="submit" name="authorize" value="no">Deny</button>
+				<button type="submit" name="authorize" value="yes">Authorize</button>
+			</form>
+		</div>
+		<script>
+			const form = document.getElementById('authorize-form');
+			form.addEventListener('submit', async function(event) {
+				event.preventDefault();
+
+				const authorize = event.submitter.value === 'yes';
+
+				try {
+					const response = await fetch("/oauth/grant", {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+						},
+						body: JSON.stringify({ "authorize": authorize })
+					});
+
+					if (!response.ok) {
+						const errorData = await response.json().catch(() => ({}));
+						alert(errorData.error || 'Failed to process authorization');
+						return;
+					}
+
+					window.location.reload();
+				} catch (error) {
+					alert('Network error: ' + error.message);
+				}
+			});
+		</script>
+	}
+}

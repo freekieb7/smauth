@@ -1,0 +1,119 @@
+package page
+
+import (
+	"github.com/freekieb7/smauth/internal/auth"
+	"github.com/freekieb7/smauth/internal/web/ui/template/layout"
+)
+
+type UsersProps struct {
+	layout.AdminProps
+	Users []auth.User
+}
+
+templ Users(props UsersProps) {
+	@layout.Admin(props.AdminProps) {
+		<h1>Users Management</h1>
+		<p>This is the users management page.</p>
+		<table class="table">
+			<thead>
+				<tr>
+					<th>User ID</th>
+					<th>Email</th>
+					<th>Role</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, user := range props.Users {
+					<tr>
+						<td>{ user.ID.String() }</td>
+						<td>{ user.Email }</td>
+						<td>{ user.Role.String() }</td>
+						<td>
+							<a href={ "/admin/users/" + user.ID.String() + "/edit" }>Edit</a>
+							<a href={ "/admin/users/" + user.ID.String() + "/delete" }>Delete</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+		<!-- Button trigger modal -->
+		<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newUserModal">
+			New user
+		</button>
+		<!-- Modal -->
+		<div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h1 class="modal-title fs-5" id="newUserModalLabel">New User</h1>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<form>
+							<div class="mb-3">
+								<label for="userEmail" class="form-label">Email address</label>
+								<input type="email" class="form-control" id="userEmail" placeholder="Enter email"/>
+							</div>
+							<div class="mb-3">
+								<label for="userRole" class="form-label">Role</label>
+								<select class="form-select" id="userRole">
+									<option value="user">User</option>
+									<option value="admin">Admin</option>
+								</select>
+							</div>
+							<div class="mb-3">
+								<small class="form-text text-muted">A password reset email will be sent to the user after creation.</small>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+						<button type="button" class="btn btn-primary">Save changes</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			document.addEventListener("DOMContentLoaded", function() {
+				const newUserModal = document.getElementById("newUserModal");
+				newUserModal.addEventListener("show.bs.modal", function() {
+					// Reset form fields
+					newUserModal.querySelector("form").reset();
+				});
+
+				// Handle form submission
+				const saveButton = newUserModal.querySelector(".btn-primary");
+				saveButton.addEventListener("click", async function() {
+					event.preventDefault();
+					const email = newUserModal.querySelector("#userEmail").value;
+					const role = newUserModal.querySelector("#userRole").value;
+
+					// Send a POST request to create a new user
+					try {
+						const response = await fetch("/admin/users/new", {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								"X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+							},
+							body: JSON.stringify({ "email": email, "role": role })
+						});
+						if (response.ok) {
+							// Close modal and refresh page
+							const modal = bootstrap.Modal.getInstance(newUserModal);
+							modal.hide();
+							location.reload();
+							return;
+						} 
+
+						alert("Error creating user");
+					} catch (error) {
+						alert("Error creating user");
+						console.error("Error details:", error);
+					}
+				});
+			});
+		</script>
+	}
+}

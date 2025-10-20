@@ -1,0 +1,62 @@
+package page
+
+import "github.com/freekieb7/smauth/internal/web/ui/template/layout"
+
+type LoginProps struct {
+	layout.RootProps
+	ReturnTo string
+}
+
+templ Login(props LoginProps) {
+	@layout.Root(props.RootProps) {
+		<div class="login-page">
+			<h1>Login Page</h1>
+			<form id="login-form">
+				if props.ReturnTo != "" {
+					<input type="hidden" name="returnTo" value={ props.ReturnTo }/>
+				}
+				<label for="email">Email:</label>
+				<input type="email" id="email" name="email" required/>
+				<label for="password">Password:</label>
+				<input type="password" id="password" name="password" required/>
+				<button type="submit">Login</button>
+			</form>
+		</div>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				const form = document.getElementById('login-form');
+				
+				form.addEventListener('submit', async function(event) {
+					event.preventDefault();
+
+					const formData = new FormData(form);
+
+					try {
+						const response = await fetch('/login', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+							},
+							body: JSON.stringify({
+								"email": formData.get('email'),
+								"password": formData.get('password'),
+								"return_to": formData.get('returnTo')
+							})
+						});
+
+						if (response.redirected) {
+							window.location.href = response.url;
+							return;
+						}
+
+						const result = await response.json();
+						alert('Error: expected redirect but got response: ' + JSON.stringify(result));
+					} catch (error) {
+						alert('An error occurred: ' + error.message);
+					}
+				});
+			});
+		</script>
+	}
+}

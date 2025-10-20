@@ -1,0 +1,14 @@
+package page
+
+import "github.com/freekieb7/smauth/internal/web/ui/template/layout"
+
+type HomeProps struct {
+	layout.AdminProps
+}
+
+templ Home(props HomeProps) {
+	@layout.Admin(props.AdminProps) {
+		<h1>Admin Home</h1>
+		<p>Welcome to the admin home of the application.</p>
+	}
+}

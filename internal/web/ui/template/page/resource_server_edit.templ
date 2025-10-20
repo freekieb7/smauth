@@ -1,0 +1,308 @@
+package page
+
+import (
+	"github.com/freekieb7/smauth/internal/oauth"
+	"github.com/freekieb7/smauth/internal/web/ui/template/layout"
+)
+
+type ResourceServerEditProps struct {
+	layout.AppProps
+	ResourceServer oauth.ResourceServer
+	SuccessMessage string
+	ErrorMessage   string
+}
+
+templ ResourceServerEdit(props ResourceServerEditProps) {
+	@layout.App(props.AppProps) {
+		<!-- Success/Error Messages -->
+		if props.SuccessMessage != "" {
+			<div class="alert alert-success fade show mb-4" role="alert" style="background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border: 2px solid #24E362; border-radius: 12px; color: #166534; position: relative;">
+				<div class="d-flex align-items-center">
+					<i class="bi bi-check-circle-fill me-2" style="color: #24E362; font-size: 1.2rem;"></i>
+					<div>
+						<strong>Success:</strong> { props.SuccessMessage }
+					</div>
+				</div>
+				<button type="button" class="btn-close float-end" onclick="closeAlert(this)" style="font-size: 0.75rem;"></button>
+			</div>
+		}
+		if props.ErrorMessage != "" {
+			<div class="alert alert-danger fade show mb-4" role="alert" style="background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%); border: 2px solid #EF4444; border-radius: 12px; color: #991B1B;">
+				<div class="d-flex align-items-center">
+					<i class="bi bi-exclamation-triangle-fill me-2" style="color: #EF4444; font-size: 1.2rem;"></i>
+					<div>
+						<strong>Error:</strong> { props.ErrorMessage }
+					</div>
+				</div>
+			</div>
+		}
+		<!-- Page Header -->
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div>
+				<nav aria-label="breadcrumb" class="mb-2">
+					<ol class="breadcrumb" style="margin: 0; background: none; padding: 0;">
+						<li class="breadcrumb-item">
+							<a href="/admin/resource-servers" style="color: #6B7280; text-decoration: none;">Resource Servers</a>
+						</li>
+						<li class="breadcrumb-item active" style="color: #0B1962;">Edit</li>
+					</ol>
+				</nav>
+				<h1 style="color: #0B1962; margin-bottom: 8px; font-weight: 700; font-size: 2rem;">Edit Resource Server</h1>
+				<p style="color: #6B7280; font-size: 1rem; margin: 0;">Configure scopes and permissions for { props.ResourceServer.URL }</p>
+			</div>
+		</div>
+		<!-- Resource Server Info Card -->
+		<div class="row">
+			<div class="col-md-4 mb-4">
+				<div style="background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); padding: 24px;">
+					<h5 style="color: #0B1962; font-weight: 600; margin-bottom: 16px;">
+						<i class="bi bi-server me-2"></i>
+						Resource Server Details
+					</h5>
+					<div class="mb-3">
+						<label class="form-label" style="font-weight: 600; color: #374151; font-size: 0.875rem;">URL</label>
+						<div style="padding: 8px 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace; font-size: 0.875rem; color: #374151;">
+							{ props.ResourceServer.URL }
+						</div>
+					</div>
+					<div class="mb-3">
+						<label class="form-label" style="font-weight: 600; color: #374151; font-size: 0.875rem;">Resource Server ID</label>
+						<div class="d-flex align-items-center">
+							<div style="padding: 8px 12px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px 0 0 6px; font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace; font-size: 0.75rem; color: #6B7280; flex: 1;">
+								{ props.ResourceServer.ID.String() }
+							</div>
+							<button type="button" class="btn btn-sm" onclick={ templ.JSFuncCall("copyToClipboard", props.ResourceServer.ID.String()) } style="background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; border-left: none; border-radius: 0 6px 6px 0; padding: 8px 12px;" title="Copy ID">
+								<i class="bi bi-clipboard" id="copy-id-icon"></i>
+							</button>
+						</div>
+					</div>
+					<div>
+						<label class="form-label" style="font-weight: 600; color: #374151; font-size: 0.875rem;">Created</label>
+						<div style="color: #6B7280; font-size: 0.875rem;">
+							{ props.ResourceServer.CreatedAt.Format("January 2, 2006 at 3:04 PM") }
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-8">
+				<!-- Scopes Management -->
+				<div style="background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); padding: 24px;">
+					<div class="d-flex justify-content-between align-items-center mb-4">
+						<h5 style="color: #0B1962; font-weight: 600; margin: 0;">
+							<i class="bi bi-key me-2"></i>
+							Scopes & Permissions
+						</h5>
+						<button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#addScopeModal" style="background: linear-gradient(135deg, #0B1962 0%, #1E40AF 100%); color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600;">
+							<i class="bi bi-plus-circle me-1"></i>
+							Add Scope
+						</button>
+					</div>
+					if len(props.ResourceServer.Scopes) > 0 {
+						<div class="row g-3">
+							for _, scope := range props.ResourceServer.Scopes {
+								<div class="col-md-6">
+									<div style="border: 2px solid #E5E7EB; border-radius: 8px; padding: 16px; transition: all 0.2s ease;" onmouseover="this.style.borderColor='#0B1962'" onmouseout="this.style.borderColor='#E5E7EB'">
+										<div class="d-flex justify-content-between align-items-start">
+											<div class="flex-grow-1">
+												<h6 style="color: #0B1962; font-weight: 600; margin-bottom: 4px; font-size: 0.9rem;">
+													{ scope.PlainScopeName() }
+												</h6>
+												if scope.Description != "" {
+													<p style="color: #6B7280; font-size: 0.8rem; margin-bottom: 8px; line-height: 1.4;">
+														{ scope.Description }
+													</p>
+												} else {
+													<p style="color: #9CA3AF; font-size: 0.8rem; margin-bottom: 8px; font-style: italic;">
+														No description provided
+													</p>
+												}
+												<div class="d-flex align-items-center justify-content-between mb-2">
+													<span style="background: #F0FDF4; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;">
+														{ scope.Name }
+													</span>
+													<button type="button" class="btn btn-sm" onclick={ templ.JSFuncCall("copyToClipboard", scope.Name, "copy-scope-icon-"+scope.ID.String()) } style="background: transparent; border: 1px solid #E5E7EB; border-radius: 4px; padding: 2px 6px; margin-left: 8px;" title="Copy full scope name">
+														<i class="bi bi-clipboard" id={ "copy-scope-icon-" + scope.ID.String() } style="font-size: 0.7rem; color: #6B7280;"></i>
+													</button>
+												</div>
+											</div>
+											<div class="dropdown">
+												<button class="btn btn-sm" type="button" data-bs-toggle="dropdown" style="background: transparent; border: none; color: #9CA3AF; padding: 4px 8px;">
+													<i class="bi bi-three-dots-vertical"></i>
+												</button>
+												<ul class="dropdown-menu">
+													<li>
+														<button class="dropdown-item" type="button" onclick={ templ.JSFuncCall("editScope", scope.Name, scope.PlainScopeName(), scope.Description) } data-bs-toggle="modal" data-bs-target="#editScopeModal">
+															<i class="bi bi-pencil me-2"></i>Edit
+														</button>
+													</li>
+													<li>
+														<button class="dropdown-item text-danger" type="button" onclick={ templ.JSFuncCall("deleteScope", scope.Name, scope.PlainScopeName()) } data-bs-toggle="modal" data-bs-target="#deleteScopeModal">
+															<i class="bi bi-trash me-2"></i>Delete
+														</button>
+													</li>
+												</ul>
+											</div>
+										</div>
+									</div>
+								</div>
+							}
+						</div>
+					} else {
+						<div class="text-center py-5">
+							<div class="mb-3" style="color: #9CA3AF; font-size: 3rem;">
+								<i class="bi bi-key"></i>
+							</div>
+							<h6 style="color: #6B7280; font-weight: 600; margin-bottom: 8px;">No Scopes Configured</h6>
+							<p style="color: #9CA3AF; margin-bottom: 16px;">Add scopes to define what permissions clients can request for this resource server.</p>
+							<button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#addScopeModal" style="background: linear-gradient(135deg, #0B1962 0%, #1E40AF 100%); color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600;">
+								<i class="bi bi-plus-circle me-2"></i>Add Your First Scope
+							</button>
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+		<!-- Add Scope Modal -->
+		<div class="modal fade" id="addScopeModal" tabindex="-1" aria-labelledby="addScopeModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);">
+					<div class="modal-header" style="background: linear-gradient(135deg, #0B1962 0%, #1E40AF 100%); color: white; border: none; border-radius: 12px 12px 0 0; padding: 24px;">
+						<h5 class="modal-title fw-bold" id="addScopeModalLabel">
+							<i class="bi bi-plus-circle me-2"></i>Add New Scope
+						</h5>
+						<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body" style="padding: 32px;">
+						<form method="POST" action={ "/admin/resource-servers/" + props.ResourceServer.ID.String() + "/scopes" }>
+							<input type="hidden" name="csrf_token" value={ props.RootProps.CSRFToken }/>
+							<div class="mb-4">
+								<label for="scope_name" class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 8px;">Scope Name *</label>
+								<input type="text" class="form-control" id="scope_name" name="scope_name" required style="border: 2px solid #E5E7EB; border-radius: 8px; padding: 12px 16px; font-size: 1rem; transition: all 0.2s ease;" onfocus="this.style.borderColor='#0B1962'; this.style.boxShadow='0 0 0 3px rgba(11, 25, 98, 0.1)'" onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none'" placeholder="read, write, admin"/>
+								<div class="form-text" style="color: #6B7280; font-size: 0.875rem; margin-top: 6px;">
+									Enter a unique scope name (e.g., "read", "write", "admin")
+								</div>
+							</div>
+							<div class="mb-4">
+								<label for="scope_description" class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 8px;">Description</label>
+								<textarea class="form-control" id="scope_description" name="scope_description" rows="3" style="border: 2px solid #E5E7EB; border-radius: 8px; padding: 12px 16px; font-size: 1rem; transition: all 0.2s ease; resize: vertical;" onfocus="this.style.borderColor='#0B1962'; this.style.boxShadow='0 0 0 3px rgba(11, 25, 98, 0.1)'" onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none'" placeholder="Describe what this scope allows..."></textarea>
+								<div class="form-text" style="color: #6B7280; font-size: 0.875rem; margin-top: 6px;">
+									Optional description of what permissions this scope grants
+								</div>
+							</div>
+							<div class="d-flex justify-content-end gap-2">
+								<button type="button" class="btn" data-bs-dismiss="modal" style="background: #F3F4F6; color: #6B7280; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">
+									Cancel
+								</button>
+								<button type="submit" class="btn" style="background: linear-gradient(135deg, #0B1962 0%, #1E40AF 100%); color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+									<i class="bi bi-plus-circle me-2"></i>Add Scope
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Edit Scope Modal -->
+		<div class="modal fade" id="editScopeModal" tabindex="-1" aria-labelledby="editScopeModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);">
+					<div class="modal-header" style="background: linear-gradient(135deg, #0B1962 0%, #1E40AF 100%); color: white; border: none; border-radius: 12px 12px 0 0; padding: 24px;">
+						<h5 class="modal-title fw-bold" id="editScopeModalLabel">
+							<i class="bi bi-pencil me-2"></i>Edit Scope
+						</h5>
+						<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body" style="padding: 32px;">
+						<form method="POST" action={ "/admin/resource-servers/" + props.ResourceServer.ID.String() + "/scopes/edit" }>
+							<input type="hidden" name="csrf_token" value={ props.RootProps.CSRFToken }/>
+							<input type="hidden" name="original_scope_name" id="edit_original_scope_name"/>
+							<div class="mb-4">
+								<label for="edit_scope_name" class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 8px;">Scope Name *</label>
+								<input type="text" class="form-control" id="edit_scope_name" name="scope_name" required style="border: 2px solid #E5E7EB; border-radius: 8px; padding: 12px 16px; font-size: 1rem; transition: all 0.2s ease;" onfocus="this.style.borderColor='#0B1962'; this.style.boxShadow='0 0 0 3px rgba(11, 25, 98, 0.1)'" onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none'"/>
+							</div>
+							<div class="mb-4">
+								<label for="edit_scope_description" class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 8px;">Description</label>
+								<textarea class="form-control" id="edit_scope_description" name="scope_description" rows="3" style="border: 2px solid #E5E7EB; border-radius: 8px; padding: 12px 16px; font-size: 1rem; transition: all 0.2s ease; resize: vertical;" onfocus="this.style.borderColor='#0B1962'; this.style.boxShadow='0 0 0 3px rgba(11, 25, 98, 0.1)'" onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none'"></textarea>
+							</div>
+							<div class="d-flex justify-content-end gap-2">
+								<button type="button" class="btn" data-bs-dismiss="modal" style="background: #F3F4F6; color: #6B7280; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">
+									Cancel
+								</button>
+								<button type="submit" class="btn" style="background: linear-gradient(135deg, #0B1962 0%, #1E40AF 100%); color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+									<i class="bi bi-pencil me-2"></i>Update Scope
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Delete Scope Modal -->
+		<div class="modal fade" id="deleteScopeModal" tabindex="-1" aria-labelledby="deleteScopeModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);">
+					<div class="modal-header" style="background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); color: white; border: none; border-radius: 12px 12px 0 0; padding: 24px;">
+						<h5 class="modal-title fw-bold" id="deleteScopeModalLabel">
+							<i class="bi bi-exclamation-triangle me-2"></i>Delete Scope
+						</h5>
+						<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body" style="padding: 32px;">
+						<div class="d-flex align-items-start mb-3">
+							<div class="me-3" style="font-size: 2rem; color: #DC2626;">
+								<i class="bi bi-exclamation-triangle-fill"></i>
+							</div>
+							<div>
+								<h6 style="font-weight: 600; color: #374151; margin-bottom: 8px;">Are you sure you want to delete this scope?</h6>
+								<p style="color: #6B7280; margin-bottom: 0; line-height: 1.6;">
+									You are about to delete the scope <strong id="delete-scope-name"></strong>. 
+									This action cannot be undone and may affect clients that use this scope.
+								</p>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer" style="border: none; padding: 0 32px 32px;">
+						<form method="POST" action={ "/admin/resource-servers/" + props.ResourceServer.ID.String() + "/scopes/delete" } class="d-flex gap-2 w-100 justify-content-end">
+							<input type="hidden" name="csrf_token" value={ props.RootProps.CSRFToken }/>
+							<input type="hidden" name="scope_name" id="delete_scope_name"/>
+							<button type="button" class="btn" data-bs-dismiss="modal" style="background: #F3F4F6; color: #6B7280; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">
+								Cancel
+							</button>
+							<button type="submit" class="btn" style="background: #DC2626; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#B91C1C'" onmouseout="this.style.background='#DC2626'">
+								<i class="bi bi-trash me-2"></i>Delete Scope
+							</button>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			function copyToClipboard(text, iconId) {
+				navigator.clipboard.writeText(text).then(function() {
+					const defaultIconId = iconId || 'copy-id-icon';
+					const icon = document.getElementById(defaultIconId);
+					if (icon) {
+						const originalClass = icon.className;
+						icon.className = 'bi bi-check text-success';
+						setTimeout(function() {
+							icon.className = originalClass;
+						}, 2000);
+					}
+				}).catch(function(err) {
+					console.error('Failed to copy: ', err);
+				});
+			}
+
+			function editScope(fullName, plainName, description) {
+				document.getElementById('edit_original_scope_name').value = fullName;
+				document.getElementById('edit_scope_name').value = plainName;
+				document.getElementById('edit_scope_description').value = description;
+			}
+
+			function deleteScope(fullName, plainName) {
+				document.getElementById('delete_scope_name').value = fullName;
+				document.getElementById('delete-scope-name').textContent = plainName;
+			}
+		</script>
+	}
+}

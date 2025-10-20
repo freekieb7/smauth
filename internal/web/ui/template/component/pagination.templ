@@ -1,0 +1,69 @@
+package component
+
+import "strconv"
+
+type PaginationInfo struct {
+	PageSize      int
+	HasNext       bool
+	HasPrev       bool
+	NextPageToken string
+	PrevPageToken string
+	BasePath      string // Add this field to specify the base URL path
+}
+
+templ PaginationControls(pagination PaginationInfo) {
+	if pagination.HasNext || pagination.HasPrev {
+		<nav aria-label="Pagination" class="mt-4">
+			<div class="d-flex justify-content-between align-items-center">
+				<div class="text-muted small">
+					<i class="bi bi-info-circle me-1"></i>
+					Showing { strconv.Itoa(pagination.PageSize) } items per page
+				</div>
+				<div class="pagination-controls">
+					<div class="btn-toolbar" role="toolbar">
+						<div class="btn-group me-2" role="group" aria-label="First and Previous">
+							<!-- First Page Button -->
+							if pagination.HasPrev {
+								<a href={ templ.URL(pagination.BasePath) } class="btn btn-outline-secondary btn-sm" title="First page">
+									<i class="bi bi-chevron-double-left"></i>
+									<span class="d-none d-md-inline ms-1">First</span>
+								</a>
+							} else {
+								<button class="btn btn-outline-secondary btn-sm" disabled title="First page">
+									<i class="bi bi-chevron-double-left"></i>
+									<span class="d-none d-md-inline ms-1">First</span>
+								</button>
+							}
+							<!-- Previous Page Button -->
+							if pagination.HasPrev {
+								<a href={ templ.URL(pagination.BasePath + "?token=" + pagination.PrevPageToken) } class="btn btn-primary btn-sm" title="Previous page">
+									<i class="bi bi-chevron-left"></i>
+									<span class="d-none d-sm-inline ms-1">Previous</span>
+								</a>
+							} else {
+								<button class="btn btn-primary btn-sm" disabled title="Previous page">
+									<i class="bi bi-chevron-left"></i>
+									<span class="d-none d-sm-inline ms-1">Previous</span>
+								</button>
+							}
+						</div>
+						<div class="btn-group" role="group" aria-label="Next and Last">
+							<!-- Next Page Button -->
+							if pagination.HasNext {
+								<a href={ templ.URL(pagination.BasePath + "?token=" + pagination.NextPageToken) } class="btn btn-primary btn-sm" title="Next page">
+									<span class="d-none d-sm-inline me-1">Next</span>
+									<i class="bi bi-chevron-right"></i>
+								</a>
+							} else {
+								<button class="btn btn-primary btn-sm" disabled title="Next page">
+									<span class="d-none d-sm-inline me-1">Next</span>
+									<i class="bi bi-chevron-right"></i>
+								</button>
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+		</nav>
+	}
+}

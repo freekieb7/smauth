@@ -1,0 +1,33 @@
+package layout
+
+type RootProps struct {
+	Title     string
+	CSRFToken string
+}
+
+templ Root(props RootProps) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ props.Title }</title>
+			<!-- Permissions Policy to handle unsupported features -->
+			<meta http-equiv="Permissions-Policy" content="clipboard-write=()"/>
+			<!-- Favicon -->
+			<link rel="icon" type="image/x-icon" href="/static/favicon.ico"/>
+			<!-- Local CSS files -->
+			<link rel="stylesheet" href="/static/css/bootstrap-5.3.8.min.css"/>
+			<link rel="stylesheet" href="/static/css/bootstrap-icons-1.13.1.min.css"/>
+			<link rel="stylesheet" href="/static/css/stylesheet.css"/>
+			if props.CSRFToken != "" {
+				<meta name="csrf-token" content={ props.CSRFToken }/>
+			}
+		</head>
+		<body class="bg-light">
+			{ children... }
+			<!-- Local JavaScript files -->
+			<script src="/static/js/bootstrap-5.3.8.bundle.min.js"></script>
+		</body>
+	</html>
+}

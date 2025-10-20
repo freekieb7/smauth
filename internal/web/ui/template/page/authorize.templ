@@ -1,0 +1,168 @@
+package page
+
+import (
+	"github.com/freekieb7/smauth/internal/oauth"
+	"github.com/freekieb7/smauth/internal/web/ui/template/layout"
+)
+
+type AuthorizeProps struct {
+	layout.RootProps
+	ApplicationName string
+	Scopes          []oauth.Scope
+}
+
+templ Authorize(props AuthorizeProps) {
+	@layout.Root(props.RootProps) {
+		<div class="authorize-page min-vh-100 d-flex align-items-center justify-content-center bg-light">
+			<div class="container">
+				<div class="row justify-content-center">
+					<div class="col-md-6 col-lg-5">
+						<div class="card shadow-lg border-0 rounded-4">
+							<div class="card-body p-5">
+								<!-- Logo/Brand -->
+								<div class="text-center mb-4">
+									<div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+										<i class="bi bi-shield-check text-white fs-3"></i>
+									</div>
+									<h2 class="fw-bold text-dark mb-1">Authorization Request</h2>
+									<p class="text-muted small">An application is requesting access to your account</p>
+								</div>
+								<!-- Client Info -->
+								<div class="bg-light rounded-3 p-3 mb-4">
+									<div class="d-flex align-items-center">
+										<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+											<i class="bi bi-app text-white"></i>
+										</div>
+										<div>
+											<h6 class="mb-0 fw-medium">{ props.ApplicationName }</h6>
+											<small class="text-muted">wants to access your account</small>
+										</div>
+									</div>
+								</div>
+								<!-- Permissions/Scopes -->
+								if len(props.Scopes) > 0 {
+									<div class="mb-4">
+										<h6 class="fw-medium text-dark mb-3">
+											<i class="bi bi-key me-2 text-primary"></i>
+											This application will be able to:
+										</h6>
+										<div class="bg-light bg-opacity-50 rounded-3 p-3">
+											for i, scope := range props.Scopes {
+												<div class="d-flex align-items-center py-2">
+													<div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
+														<i class="bi bi-check text-success"></i>
+													</div>
+													<span class="text-dark">{ scope.Description }</span>
+												</div>
+												if i < len(props.Scopes)-1 {
+													<hr class="my-1 opacity-25"/>
+												}
+											}
+										</div>
+									</div>
+								}
+								<!-- Warning -->
+								<div class="alert alert-warning border-0 bg-warning bg-opacity-10 mb-4">
+									<div class="d-flex align-items-start">
+										<i class="bi bi-exclamation-triangle-fill text-warning me-2 mt-1"></i>
+										<div>
+											<small class="text-dark">
+												<strong>Be careful:</strong> Only authorize applications you trust. 
+												You can revoke access at any time in your account settings.
+											</small>
+										</div>
+									</div>
+								</div>
+								<!-- Action Buttons -->
+								<form id="authorize-form">
+									<div class="d-grid gap-2">
+										<button type="submit" name="authorize" value="yes" class="btn btn-primary py-2 fw-medium rounded-3">
+											<i class="bi bi-check-lg me-2"></i>
+											Authorize Access
+										</button>
+										<button type="submit" name="authorize" value="no" class="btn btn-outline-secondary py-2 fw-medium rounded-3">
+											<i class="bi bi-x-lg me-2"></i>
+											Deny Access
+										</button>
+									</div>
+								</form>
+							</div>
+						</div>
+						<!-- Footer -->
+						<div class="text-center mt-4">
+							<p class="text-muted small mb-0">
+								<a href="/account/applications" class="text-decoration-none">Manage authorized applications</a>
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				const form = document.getElementById('authorize-form');
+
+				form.addEventListener('submit', async function(event) {
+					event.preventDefault();
+
+					// Disable both buttons during submission
+					const buttons = form.querySelectorAll('button[type="submit"]');
+					buttons.forEach(btn => btn.disabled = true);
+
+					const authorize = event.submitter.value === 'yes';
+
+					try {
+						const response = await fetch("/oauth/grant", {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+							},
+							body: JSON.stringify({ "authorize": authorize })
+						});
+
+						if (!response.ok) {
+							const errorData = await response.json().catch(() => ({}));
+							throw new Error(errorData.error || 'Failed to process authorization');
+						}
+
+						window.location.reload();
+					} catch (error) {
+						// Re-enable buttons on error
+						buttons.forEach(btn => btn.disabled = false);
+						
+						// Show error message
+						showError(error.message || 'Network error occurred');
+					}
+				});
+
+				// Error display function
+				function showError(message) {
+					// Remove existing error
+					const existingError = form.querySelector('.alert-danger');
+					if (existingError) {
+						existingError.remove();
+					}
+
+					// Create and show error alert
+					const errorAlert = document.createElement('div');
+					errorAlert.className = 'alert alert-danger alert-dismissible fade show mt-3';
+					errorAlert.innerHTML = `
+						<i class="bi bi-exclamation-triangle-fill me-2"></i>
+						${message}
+						<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+					`;
+
+					form.appendChild(errorAlert);
+
+					// Auto-hide after 5 seconds
+					setTimeout(() => {
+						if (errorAlert.parentNode) {
+							errorAlert.remove();
+						}
+					}, 5000);
+				}
+			});
+		</script>
+	}
+}

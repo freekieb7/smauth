@@ -1,0 +1,306 @@
+package page
+
+import (
+	"github.com/freekieb7/smauth/internal/account"
+	"github.com/freekieb7/smauth/internal/web/ui/template/component"
+	"github.com/freekieb7/smauth/internal/web/ui/template/layout"
+)
+
+type UsersProps struct {
+	layout.AppProps
+	Users          []account.User
+	SuccessMessage string
+	ErrorMessage   string
+	Pagination     component.PaginationInfo
+}
+
+templ Users(props UsersProps) {
+	@layout.App(props.AppProps) {
+		<!-- Success/Error Messages -->
+		if props.SuccessMessage != "" {
+			<div class="alert alert-success fade show alert-success-custom" role="alert">
+				<div class="d-flex align-items-start">
+					<div class="alert-icon-large">
+						<i class="bi bi-check-circle-fill" style="color: #24E362;"></i>
+					</div>
+					<div class="flex-grow-1">
+						<h5 class="alert-heading-custom">
+							<i class="bi bi-check-circle-fill me-2"></i>
+							Success!
+						</h5>
+						<p class="mb-0" style="font-weight: 500;">
+							switch props.SuccessMessage {
+								case "user_created":
+									User created successfully! A password reset email will be sent to the user.
+								default:
+									Operation completed successfully.
+							}
+						</p>
+					</div>
+				</div>
+				<button type="button" class="btn-close float-end" onclick="closeAlert(this)" style="font-size: 0.75rem;"></button>
+			</div>
+		}
+		if props.ErrorMessage != "" {
+			<div class="alert alert-danger fade show alert-danger-custom" role="alert">
+				<div class="d-flex align-items-center">
+					<i class="bi bi-exclamation-triangle-fill alert-icon-small" style="color: #EF4444;"></i>
+					<div>
+						<strong>Error:</strong>
+						switch props.ErrorMessage {
+							case "invalid_form":
+								Invalid form data. Please try again.
+							case "invalid_csrf":
+								Invalid security token. Please refresh the page and try again.
+							case "email_required":
+								Email address is required.
+							case "role_required":
+								Role selection is required.
+							case "invalid_role":
+								Invalid role selected.
+							case "user_exists":
+								A user with this email address already exists.
+							case "internal_error":
+								An internal error occurred. Please try again.
+							default:
+								An error occurred. Please try again.
+						}
+					</div>
+				</div>
+				<button type="button" class="btn-close float-end" onclick="closeAlert(this)" style="font-size: 0.75rem;"></button>
+			</div>
+		}
+		<div class="d-flex justify-content-between align-items-center admin-page-header">
+			<div>
+				<h1 class="admin-page-title">Users Management</h1>
+				<p class="admin-page-subtitle">Manage user accounts and permissions</p>
+			</div>
+			<button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#newUserModal" style="background: #0B1962; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#05103A'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#0B1962'; this.style.transform='translateY(0)'">
+				<i class="bi bi-plus-circle me-2"></i>New User
+			</button>
+		</div>
+		<!-- Users Table -->
+		<div class="card border-0" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+			<div class="card-body p-0">
+				<div class="table-responsive">
+					<table class="table table-hover mb-0">
+						<thead style="background: #F2F4F8; border-bottom: 2px solid #E5E7EB;">
+							<tr>
+								<th style="color: #0B1962; font-weight: 600; padding: 8px 16px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">User</th>
+								<th style="color: #0B1962; font-weight: 600; padding: 8px 16px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Role</th>
+								<th style="color: #0B1962; font-weight: 600; padding: 8px 16px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+								<th style="color: #0B1962; font-weight: 600; padding: 8px 16px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Created</th>
+								<th style="color: #0B1962; font-weight: 600; padding: 8px 16px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							if len(props.Users) == 0 {
+								<tr>
+									<td colspan="5" class="text-center py-4" style="color: #9CA3AF;">
+										<i class="bi bi-people fs-1 d-block mb-2" style="color: #D1D5DB;"></i>
+										<div style="font-size: 1rem; font-weight: 500; margin-bottom: 4px;">No users found</div>
+										<div style="font-size: 0.875rem;">Create your first user to get started</div>
+									</td>
+								</tr>
+							} else {
+								for _, user := range props.Users {
+									<tr style="border-bottom: 1px solid #F3F4F6;">
+										<td style="padding: 8px 16px;">
+											<div class="d-flex align-items-center">
+												<div class="d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; background: linear-gradient(135deg, #0B1962 0%, #05103A 100%); color: white; border-radius: 6px; font-weight: 600; font-size: 0.8rem;">
+													{ string(user.Email[0]) }
+												</div>
+												<div>
+													<div style="font-weight: 600; color: #0B1962; font-size: 0.85rem;">{ user.Email }</div>
+													<div class="d-flex align-items-center">
+														<span style="font-family: 'SF Mono', 'Monaco', monospace; font-size: 0.7rem; color: #6B7280; cursor: pointer;" onclick={ templ.JSFuncCall("toggleUserID", user.ID.String()) }>
+															<span id={ "user-id-short-" + user.ID.String() }>{ user.ID.String()[:8] }...</span>
+															<span id={ "user-id-full-" + user.ID.String() } style="display: none;">{ user.ID.String() }</span>
+														</span>
+														<button type="button" class="btn btn-sm ms-1" onclick={ templ.JSFuncCall("copyUserId", user.ID.String()) } style="background: transparent; border: none; color: #9CA3AF; padding: 2px; font-size: 0.7rem;">
+															<i class="bi bi-clipboard"></i>
+														</button>
+													</div>
+												</div>
+											</div>
+										</td>
+										<td style="padding: 8px 16px;">
+											<span style={ "padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;", templ.KV("background: #FEF3C7; color: #D97706;", user.Role.String() == "admin"), templ.KV("background: #EBF8FF; color: #1E40AF;", user.Role.String() == "user"), templ.KV("background: #F3F4F6; color: #374151;", true) }>
+												{ user.Role.String() }
+											</span>
+										</td>
+										<td style="padding: 8px 16px;">
+											<span style={ "padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;", templ.KV("background: #F0FDF4; color: #166534;", user.IsEmailVerified), templ.KV("background: #FEF2F2; color: #DC2626;", !user.IsEmailVerified) }>
+												if user.IsEmailVerified {
+													Verified
+												} else {
+													Unverified
+												}
+											</span>
+										</td>
+										<td style="padding: 8px 16px;">
+											<small style="color: #6B7280; font-family: 'SF Mono', 'Monaco', monospace; font-size: 0.75rem;">{ user.CreatedAt.Format("2006-01-02 15:04") }</small>
+										</td>
+										<td style="padding: 8px 16px;">
+											<div class="btn-group" role="group">
+												<button type="button" class="btn btn-sm" style="background: transparent; border: 1px solid #E5E7EB; color: #6B7280; padding: 4px 8px; font-size: 0.7rem;">
+													<i class="bi bi-pencil"></i>
+												</button>
+												<button type="button" class="btn btn-sm" style="background: transparent; border: 1px solid #E5E7EB; color: #DC2626; padding: 4px 8px; font-size: 0.7rem;">
+													<i class="bi bi-trash"></i>
+												</button>
+											</div>
+										</td>
+									</tr>
+								}
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<!-- Pagination Controls -->
+			@component.PaginationControls(props.Pagination)
+		</div>
+		<!-- Modal -->
+		<div class="modal fade" id="newUserModal" tabindex="-1" aria-labelledby="newUserModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content border-0" style="border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+					<form method="POST" action="/admin/users/new">
+						<input type="hidden" name="csrf_token" value={ props.RootProps.CSRFToken }/>
+						<div class="modal-header border-0" style="padding: 32px 32px 16px 32px;">
+							<div>
+								<h1 class="modal-title mb-1" id="newUserModalLabel" style="color: #0B1962; font-weight: 700; font-size: 1.5rem;">Create New User</h1>
+								<p class="text-muted mb-0" style="font-size: 0.9rem;">Add a new user to the system</p>
+							</div>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+						</div>
+						<div class="modal-body" style="padding: 16px 32px 32px 32px;">
+							<div class="mb-4">
+								<label for="userEmail" class="form-label fw-medium mb-2" style="color: #05103A; font-size: 0.875rem;">Email Address</label>
+								<input type="email" class="form-control" id="userEmail" name="email" required placeholder="Enter email address" style="border-color: #E5E7EB; border-radius: 8px; padding: 12px 16px; font-size: 0.95rem; transition: all 0.2s ease;" onfocus="this.style.borderColor='#24E362'; this.style.boxShadow='0 0 0 3px rgba(36,227,98,0.1)'" onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none'"/>
+							</div>
+							<div class="mb-4">
+								<label for="userRole" class="form-label fw-medium mb-2" style="color: #05103A; font-size: 0.875rem;">Role</label>
+								<select class="form-select" id="userRole" name="role" required style="border-color: #E5E7EB; border-radius: 8px; padding: 12px 16px; font-size: 0.95rem; transition: all 0.2s ease;" onfocus="this.style.borderColor='#24E362'; this.style.boxShadow='0 0 0 3px rgba(36,227,98,0.1)'" onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none'">
+									<option value="">Select role...</option>
+									<option value="user">User</option>
+									<option value="admin">Admin</option>
+								</select>
+							</div>
+							<div class="alert border-0" style="background: linear-gradient(135deg, #EBF8FF 0%, #DBEAFE 100%); color: #1E40AF; border-radius: 8px;">
+								<i class="bi bi-info-circle me-2" style="color: #3B82F6;"></i>
+								<small>A password reset email will be sent to the user after creation.</small>
+							</div>
+						</div>
+						<div class="modal-footer border-0" style="padding: 16px 32px 32px 32px;">
+							<button type="button" class="btn me-3" data-bs-dismiss="modal" style="background: #F3F4F6; color: #374151; border: none; border-radius: 8px; padding: 12px 20px; font-weight: 500; transition: all 0.2s ease;" onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">Cancel</button>
+							<button type="submit" class="btn" style="background: #0B1962; color: white; border: none; border-radius: 8px; padding: 12px 20px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#05103A'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#0B1962'; this.style.transform='translateY(0)'">
+								<i class="bi bi-plus-circle me-2"></i>Create User
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<!-- Delete User Modal -->
+		<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);">
+					<div class="modal-header" style="background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); color: white; border: none; border-radius: 12px 12px 0 0; padding: 24px;">
+						<h5 class="modal-title fw-bold" id="deleteUserModalLabel">
+							<i class="bi bi-exclamation-triangle me-2"></i>Delete User
+						</h5>
+						<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body" style="padding: 32px;">
+						<div class="d-flex align-items-start mb-3">
+							<div class="me-3" style="font-size: 2rem; color: #DC2626;">
+								<i class="bi bi-exclamation-triangle-fill"></i>
+							</div>
+							<div>
+								<h6 style="font-weight: 600; color: #374151; margin-bottom: 8px;">Are you sure you want to delete this user?</h6>
+								<p style="color: #6B7280; margin-bottom: 0; line-height: 1.6;">
+									You are about to delete the user <strong id="delete-user-email"></strong>. 
+									This action cannot be undone and will permanently remove all user data.
+								</p>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer" style="border: none; padding: 0 32px 32px;">
+						<form method="POST" action="/admin/users/delete" class="d-flex gap-2 w-100 justify-content-end">
+							<input type="hidden" name="csrf_token" value={ props.RootProps.CSRFToken }/>
+							<input type="hidden" name="user_id" id="delete-user-id"/>
+							<button type="button" class="btn" data-bs-dismiss="modal" style="background: #F3F4F6; color: #6B7280; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#E5E7EB'" onmouseout="this.style.background='#F3F4F6'">
+								Cancel
+							</button>
+							<button type="submit" class="btn" style="background: #DC2626; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#B91C1C'" onmouseout="this.style.background='#DC2626'">
+								<i class="bi bi-trash me-2"></i>Delete User
+							</button>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			function setDeleteUser(userId, userEmail) {
+				document.getElementById('delete-user-id').value = userId;
+				document.getElementById('delete-user-email').textContent = userEmail;
+			}
+
+			function toggleUserID(userId) {
+				const shortElement = document.getElementById('user-id-short-' + userId);
+				const fullElement = document.getElementById('user-id-full-' + userId);
+				
+				if (shortElement.style.display === 'none') {
+					shortElement.style.display = 'inline';
+					fullElement.style.display = 'none';
+				} else {
+					shortElement.style.display = 'none';
+					fullElement.style.display = 'inline';
+				}
+			}
+
+			function copyUserId(userId) {
+				navigator.clipboard.writeText(userId).then(function() {
+					// Visual feedback
+					const button = event.target.closest('button');
+					const originalHtml = button.innerHTML;
+					button.innerHTML = '<i class="bi bi-check text-success"></i>';
+					setTimeout(function() {
+						button.innerHTML = originalHtml;
+					}, 2000);
+				}).catch(function(err) {
+					console.error('Failed to copy user ID: ', err);
+				});
+			}
+
+			// Function to close alert and clear URL parameters
+			function closeAlert(button) {
+				// Remove the alert element
+				button.parentElement.remove();
+				
+				// Clear URL parameters
+				clearUrlParams();
+			}
+
+			// Function to clear error and success parameters from URL
+			function clearUrlParams() {
+				if (window.history && window.history.replaceState) {
+					const url = new URL(window.location);
+					url.searchParams.delete('error');
+					url.searchParams.delete('success');
+					window.history.replaceState(null, '', url);
+				}
+			}
+
+			// Auto-clear URL parameters after showing the message (optional)
+			document.addEventListener('DOMContentLoaded', function() {
+				const urlParams = new URLSearchParams(window.location.search);
+				if (urlParams.has('error') || urlParams.has('success')) {
+					// Clear URL parameters after 30 seconds
+					setTimeout(clearUrlParams, 30000);
+				}
+			});
+		</script>
+	}
+}

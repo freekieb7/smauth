@@ -1,0 +1,35 @@
+{
+    "_type": "EHR",
+    "ehr_id": {
+        "_type": "HIER_OBJECT_ID",
+        "value": "d1b229c3-918e-4aba-b56a-7162ade03459"
+    },
+    "ehr_access": {
+        "id": {
+            "Type": "HIER_OBJECT_ID",
+            "Value": {
+                "_type": "HIER_OBJECT_ID",
+                "value": "2da4db3c-363a-4cdb-ae3d-ba1f7b67e3e8"
+            }
+        },
+        "type": "EHR_ACCESS",
+        "_type": "OBJECT_REF",
+        "namespace": "local"
+    },
+    "ehr_status": {
+        "id": {
+            "Type": "HIER_OBJECT_ID",
+            "Value": {
+                "_type": "HIER_OBJECT_ID",
+                "value": "4f5b9516-63d1-42d7-bd7c-08d94e34782b"
+            }
+        },
+        "type": "EHR_STATUS",
+        "_type": "OBJECT_REF",
+        "namespace": "local"
+    },
+    "time_created": {
+        "_type": "DV_DATE_TIME",
+        "value": "something"
+    }
+}

@@ -1,0 +1,64 @@
+services:
+  migrate:
+    build:
+      context: ..
+      dockerfile: ./build/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/smauth?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    command: [ "migrate", "up" ]
+    restart: "no"
+
+  web:
+    build:
+      context: ..
+      dockerfile: ./build/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/smauth?sslmode=disable
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      alloy:
+        condition: service_started
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smauth
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d smauth" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  alloy:
+    image: grafana/alloy:v1.11.3
+    volumes:
+      - ../config/alloy:/etc/alloy
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "12345:12345" # UI
+    environment:
+      GRAFANA_CLOUD_OTLP_ENDPOINT: ${GRAFANA_CLOUD_OTLP_ENDPOINT}
+      GRAFANA_CLOUD_INSTANCE_ID: ${GRAFANA_CLOUD_INSTANCE_ID}
+      GRAFANA_CLOUD_API_KEY: ${GRAFANA_CLOUD_API_KEY}
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --stability.level=experimental # Enable all functionality

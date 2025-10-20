@@ -1,0 +1,285 @@
+package view 
+
+import (
+	"github.com/freekieb7/smauth/internal/web/view/component"
+	"github.com/google/uuid"
+)
+
+type User struct {
+	ID    uuid.UUID
+	Name  string
+	Email string
+}
+
+type UsersPageProps struct {
+	component.LayoutProps
+	Users []User
+}
+
+templ UsersPage(props UsersPageProps) {
+	@component.Layout(props.LayoutProps) {
+		<div class="container-fluid">
+			<div class="d-flex justify-content-between align-items-center mb-4">
+				<h1 class="h3">Users</h1>
+				<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+					<i class="bi bi-plus-circle me-2"></i>Create User
+				</button>
+			</div>
+			<div class="row">
+				<div class="col-12">
+					<div class="card">
+						<div class="card-header">
+							<h5 class="card-title mb-0">User Overview</h5>
+						</div>
+						<div class="card-body">
+							if len(props.Users) == 0 {
+								<div class="text-center text-muted py-4">
+									<i class="bi bi-people fs-1 d-block mb-3"></i>
+									<p>No users found</p>
+								</div>
+							} else {
+								<div class="table-responsive">
+									<table class="table table-hover">
+										<thead>
+											<tr>
+												<th>Name</th>
+												<th>Email</th>
+												<th>Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											for _, user := range props.Users {
+												<tr>
+													<td>{ user.Name }</td>
+													<td>{ user.Email }</td>
+													<td>
+														<button
+															class="btn btn-sm btn-outline-primary me-2"
+															onclick={ templ.JSFuncCall("openEditModal", user.ID.String(), user.Name, user.Email) }
+														>
+															Edit
+														</button>
+														<button
+															class="btn btn-sm btn-outline-danger"
+															onclick={ templ.JSFuncCall("deleteUser", user.ID.String(), user.Name) }
+														>
+															Delete
+														</button>
+													</td>
+												</tr>
+											}
+										</tbody>
+									</table>
+								</div>
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Update User Modal -->
+		<div class="modal fade" id="updateUserModal" tabindex="-1" aria-labelledby="updateUserModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="updateUserModalLabel">Update User</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<form id="updateUserForm">
+						<input type="hidden" id="updateUserId" name="id"/>
+						<div class="modal-body">
+							<div class="mb-3">
+								<label for="updateUserName" class="form-label">Name</label>
+								<input type="text" class="form-control" id="updateUserName" name="name" required/>
+							</div>
+							<div class="mb-3">
+								<label for="updateUserEmail" class="form-label">Email</label>
+								<input type="email" class="form-control" id="updateUserEmail" name="email" required/>
+							</div>
+							<div class="mb-3">
+								<label for="updateUserPassword" class="form-label">Password (leave blank to keep current)</label>
+								<input type="password" class="form-control" id="updateUserPassword" name="password"/>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+							<button type="submit" class="btn btn-primary">
+								<span class="spinner-border spinner-border-sm me-2 d-none" id="updateUserSpinner"></span>
+								Update User
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<!-- Create User Modal -->
+		<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="createUserModalLabel">Create New User</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<form id="createUserForm">
+						<div class="modal-body">
+							<div class="mb-3">
+								<label for="userName" class="form-label">Name</label>
+								<input type="text" class="form-control" id="userName" name="name" required/>
+							</div>
+							<div class="mb-3">
+								<label for="userEmail" class="form-label">Email</label>
+								<input type="email" class="form-control" id="userEmail" name="email" required/>
+							</div>
+							<div class="mb-3">
+								<label for="userPassword" class="form-label">Password</label>
+								<input type="password" class="form-control" id="userPassword" name="password" required/>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+							<button type="submit" class="btn btn-primary">
+								<span class="spinner-border spinner-border-sm me-2 d-none" id="createUserSpinner"></span>
+								Create User
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<script>
+			// Create User Form Handler
+			document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+				e.preventDefault();
+				
+				const submitBtn = e.target.querySelector('button[type="submit"]');
+				const spinner = document.getElementById('createUserSpinner');
+				const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
+				
+				// Show loading state
+				submitBtn.disabled = true;
+				spinner.classList.remove('d-none');
+				
+				try {
+					const formData = new FormData(e.target);
+					const response = await fetch('/users/create-user', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							name: formData.get('name'),
+							email: formData.get('email'),
+							password: formData.get('password')
+						})
+					});
+					
+					if (response.status === 201) {
+						// Success - reload page to show new user
+						window.location.reload();
+					} else {
+						// Handle error
+						const errorData = await response.json().catch(() => ({}));
+						alert(errorData.message || 'Failed to create user');
+					}
+				} catch (error) {
+					alert('Network error: ' + error.message);
+				} finally {
+					// Reset loading state
+					submitBtn.disabled = false;
+					spinner.classList.add('d-none');
+				}
+			});
+
+			// Update User Form Handler
+			document.getElementById('updateUserForm').addEventListener('submit', async function(e) {
+				e.preventDefault();
+				
+				const submitBtn = e.target.querySelector('button[type="submit"]');
+				const spinner = document.getElementById('updateUserSpinner');
+				
+				// Show loading state
+				submitBtn.disabled = true;
+				spinner.classList.remove('d-none');
+				
+				try {
+					const formData = new FormData(e.target);
+					const requestBody = {
+						id: formData.get('id'),
+						name: formData.get('name'),
+						email: formData.get('email')
+					};
+					
+					// Only include password if it's provided
+					const password = formData.get('password');
+					if (password && password.trim() !== '') {
+						requestBody.password = password;
+					}
+					
+					const response = await fetch('/users/update-user', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(requestBody)
+					});
+					
+					if (response.ok) {
+						// Success - reload page to show updated user
+						window.location.reload();
+					} else {
+						// Handle error
+						const errorData = await response.json().catch(() => ({}));
+						alert(errorData.message || 'Failed to update user');
+					}
+				} catch (error) {
+					alert('Network error: ' + error.message);
+				} finally {
+					// Reset loading state
+					submitBtn.disabled = false;
+					spinner.classList.add('d-none');
+				}
+			});
+
+			// Open Edit Modal Function
+			function openEditModal(userId, userName, userEmail) {
+				document.getElementById('updateUserId').value = userId;
+				document.getElementById('updateUserName').value = userName;
+				document.getElementById('updateUserEmail').value = userEmail;
+				document.getElementById('updateUserPassword').value = '';
+				
+				const modal = new bootstrap.Modal(document.getElementById('updateUserModal'));
+				modal.show();
+			}
+
+			// Delete User Function
+			async function deleteUser(userId, userName) {
+				if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+					return;
+				}
+				
+				try {
+					const response = await fetch('/users/delete-user', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							id: userId
+						})
+					});
+					
+					if (response.ok) {
+						// Success - reload page to remove deleted user
+						window.location.reload();
+					} else {
+						// Handle error
+						const errorData = await response.json().catch(() => ({}));
+						alert(errorData.message || 'Failed to delete user');
+					}
+				} catch (error) {
+					alert('Network error: ' + error.message);
+				}
+			}
+		</script>
+	}
+}

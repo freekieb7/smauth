@@ -1,0 +1,275 @@
+package view
+
+import (
+	"github.com/freekieb7/smauth/internal/web/view/component"
+	"github.com/google/uuid"
+	"strings"
+	"time"
+)
+
+type Client struct {
+	ID           uuid.UUID
+	Name         string
+	RedirectURIs []string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+type ClientsPageProps struct {
+	component.LayoutProps
+	Clients []Client
+}
+
+templ ClientsPage(props ClientsPageProps) {
+	@component.Layout(props.LayoutProps) {
+		<div class="container-fluid">
+			<div class="d-flex justify-content-between align-items-center mb-4">
+				<h1 class="h3">Clients</h1>
+				<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createClientModal">
+					<i class="bi bi-plus-circle me-2"></i>Create Client
+				</button>
+			</div>
+			<div class="row">
+				<div class="col-12">
+					<div class="card">
+						<div class="card-header">
+							<h5 class="card-title mb-0">Client Overview</h5>
+						</div>
+						<div class="card-body">
+							if len(props.Clients) == 0 {
+								<div class="text-center text-muted py-4">
+									<i class="bi bi-people fs-1 d-block mb-3"></i>
+									<p>No clients found</p>
+								</div>
+							} else {
+								<div class="table-responsive">
+									<table class="table table-hover">
+										<thead>
+											<tr>
+												<th>Name</th>
+												<th>Redirect URI</th>
+												<th>Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											for _, client := range props.Clients {
+												<tr>
+													<td>{ client.Name }</td>
+													<td>{ strings.Join(client.RedirectURIs, " ") }</td>
+													<td>
+														<button
+															class="btn btn-sm btn-outline-primary me-2"
+															onclick={ templ.JSFuncCall("openEditModal", client.ID.String(), client.Name, client.RedirectURIs) }
+														>
+															Edit
+														</button>
+														<button
+															class="btn btn-sm btn-outline-danger"
+															onclick={ templ.JSFuncCall("deleteClient", client.ID.String(), client.Name) }
+														>
+															Delete
+														</button>
+													</td>
+												</tr>
+											}
+										</tbody>
+									</table>
+								</div>
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Create Client Modal -->
+		<div class="modal fade" id="createClientModal" tabindex="-1" aria-labelledby="createClientModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="createClientModalLabel">Create New Client</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<form id="createClientForm">
+						<div class="modal-body">
+							<div class="mb-3">
+								<label for="clientName" class="form-label">Name</label>
+								<input type="text" class="form-control" id="clientName" name="name" required/>
+							</div>
+							<div class="mb-3">
+								<label for="clientRedirectUris" class="form-label">Redirect URIs</label>
+								<textarea class="form-control" id="clientRedirectUris" name="redirect_uris" rows="3" placeholder="http://localhost:3000/callback&#10;https://example.com/oauth/callback" required></textarea>
+								<div class="form-text">Enter one URI per line</div>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+							<button type="submit" class="btn btn-primary">
+								<span class="spinner-border spinner-border-sm me-2 d-none" id="createClientSpinner"></span>
+								Create Client
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<!-- Update Client Modal -->
+		<div class="modal fade" id="updateClientModal" tabindex="-1" aria-labelledby="updateClientModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="updateClientModalLabel">Update Client</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<form id="updateClientForm">
+						<input type="hidden" id="updateClientId" name="id"/>
+						<div class="modal-body">
+							<div class="mb-3">
+								<label for="updateClientName" class="form-label">Name</label>
+								<input type="text" class="form-control" id="updateClientName" name="name" required/>
+							</div>
+							<div class="mb-3">
+								<label for="updateClientRedirectUris" class="form-label">Redirect URIs</label>
+								<textarea class="form-control" id="updateClientRedirectUris" name="redirect_uris" rows="3" required></textarea>
+								<div class="form-text">Enter one URI per line</div>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+							<button type="submit" class="btn btn-primary">
+								<span class="spinner-border spinner-border-sm me-2 d-none" id="updateClientSpinner"></span>
+								Update Client
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<script>
+			// Create Client Form Handler
+			document.getElementById('createClientForm').addEventListener('submit', async function(e) {
+				e.preventDefault();
+				
+				const submitBtn = e.target.querySelector('button[type="submit"]');
+				const spinner = document.getElementById('createClientSpinner');
+				
+				// Show loading state
+				submitBtn.disabled = true;
+				spinner.classList.remove('d-none');
+				
+				try {
+					const formData = new FormData(e.target);
+					const redirectUris = formData.get('redirect_uris').split('\n').filter(uri => uri.trim() !== '');
+					
+					const response = await fetch('/clients/create-client', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							name: formData.get('name'),
+							redirect_uris: redirectUris
+						})
+					});
+					
+					if (response.status === 201) {
+						// Success - reload page to show new client
+						window.location.reload();
+					} else {
+						// Handle error
+						const errorData = await response.json().catch(() => ({}));
+						alert(errorData.message || 'Failed to create client');
+					}
+				} catch (error) {
+					alert('Network error: ' + error.message);
+				} finally {
+					// Reset loading state
+					submitBtn.disabled = false;
+					spinner.classList.add('d-none');
+				}
+			});
+
+			// Update Client Form Handler
+			document.getElementById('updateClientForm').addEventListener('submit', async function(e) {
+				e.preventDefault();
+				
+				const submitBtn = e.target.querySelector('button[type="submit"]');
+				const spinner = document.getElementById('updateClientSpinner');
+				
+				// Show loading state
+				submitBtn.disabled = true;
+				spinner.classList.remove('d-none');
+				
+				try {
+					const formData = new FormData(e.target);
+					const redirectUris = formData.get('redirect_uris').split('\n').filter(uri => uri.trim() !== '');
+					
+					const response = await fetch('/clients/update-client', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							id: formData.get('id'),
+							name: formData.get('name'),
+							redirect_uris: redirectUris
+						})
+					});
+					
+					if (response.ok) {
+						// Success - reload page to show updated client
+						window.location.reload();
+					} else {
+						// Handle error
+						const errorData = await response.json().catch(() => ({}));
+						alert(errorData.message || 'Failed to update client');
+					}
+				} catch (error) {
+					alert('Network error: ' + error.message);
+				} finally {
+					// Reset loading state
+					submitBtn.disabled = false;
+					spinner.classList.add('d-none');
+				}
+			});
+
+			// Open Edit Modal Function
+			function openEditModal(clientId, clientName, redirectUris) {
+				document.getElementById('updateClientId').value = clientId;
+				document.getElementById('updateClientName').value = clientName;
+				document.getElementById('updateClientRedirectUris').value = redirectUris.join('\n');
+				
+				const modal = new bootstrap.Modal(document.getElementById('updateClientModal'));
+				modal.show();
+			}
+
+			// Delete Client Function
+			async function deleteClient(clientId, clientName) {
+				if (!confirm(`Are you sure you want to delete client "${clientName}"? This action cannot be undone.`)) {
+					return;
+				}
+				
+				try {
+					const response = await fetch('/clients/delete-client', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							id: clientId
+						})
+					});
+					
+					if (response.ok) {
+						// Success - reload page to remove deleted client
+						window.location.reload();
+					} else {
+						// Handle error
+						const errorData = await response.json().catch(() => ({}));
+						alert(errorData.message || 'Failed to delete client');
+					}
+				} catch (error) {
+					alert('Network error: ' + error.message);
+				}
+			}
+		</script>
+	}
+}
